@@ -119,8 +119,7 @@ class DaeExporter:
             return True
 
         def get_tup(self):
-            tup = (self.vertex.x, self.vertex.y, self.vertex.z, self.normal.x,
-                   self.normal.y, self.normal.z)
+            tup = (self.vertex.x, self.vertex.y)
             for t in self.uv:
                 tup = tup + (t.x, t.y)
             if self.color is not None:
@@ -289,7 +288,7 @@ class DaeExporter:
         self.writel(S_FX, 5, "<emission>")
         if emission_tex is not None:
             self.writel(
-                S_FX, 6, "<texture texture=\"{}\" texcoord=\"CHANNEL1\"/>"
+                S_FX, 6, "<texture texture=\"{}\" texcoord=\"CHANNEL0\"/>"
                 .format(emission_tex))
         else:
             # TODO: More accurate coloring, if possible
@@ -305,7 +304,7 @@ class DaeExporter:
         self.writel(S_FX, 5, "<diffuse>")
         if diffuse_tex is not None:
             self.writel(
-                S_FX, 6, "<texture texture=\"{}\" texcoord=\"CHANNEL1\"/>"
+                S_FX, 6, "<texture texture=\"{}\" texcoord=\"CHANNEL0\"/>"
                 .format(diffuse_tex))
         else:
             self.writel(S_FX, 6, "<color>{}</color>".format(numarr_alpha(
@@ -316,7 +315,7 @@ class DaeExporter:
         if specular_tex is not None:
             self.writel(
                 S_FX, 6,
-                "<texture texture=\"{}\" texcoord=\"CHANNEL1\"/>".format(
+                "<texture texture=\"{}\" texcoord=\"CHANNEL0\"/>".format(
                     specular_tex))
         else:
             self.writel(S_FX, 6, "<color>{}</color>".format(numarr_alpha(
@@ -350,7 +349,7 @@ class DaeExporter:
             self.writel(S_FX, 6, "<bump bumptype=\"NORMALMAP\">")
             self.writel(
                 S_FX, 7,
-                "<texture texture=\"{}\" texcoord=\"CHANNEL1\"/>".format(
+                "<texture texture=\"{}\" texcoord=\"CHANNEL0\"/>".format(
                     normal_tex))
             self.writel(S_FX, 6, "</bump>")
 
@@ -412,9 +411,9 @@ class DaeExporter:
                 node.data = v
                 node.data.update()
                 if (armature and k == 0):
-                    md = self.export_mesh(node, armature, k, mid, shape.name)
+                    md = self.export_mesh(node, armature, k, mid, "{}_shapeKey".format(shape.name))
                 else:
-                    md = self.export_mesh(node, None, k, None, shape.name)
+                    md = self.export_mesh(node, None, k, None, "{}_shapeKey".format(shape.name))
 
                 node.data = p
                 node.data.update()
@@ -435,7 +434,7 @@ class DaeExporter:
                 S_MORPH, 3, "<source id=\"{}-morph-targets\">".format(mid))
             self.writel(
                 S_MORPH, 4,
-                "<IDREF_array id=\"{}-morph-targets-array\" "
+                "<Name_array id=\"{}-morph-targets-array\" "
                 "count=\"{}\">".format(mid, len(morph_targets) - 1))
             marr = ""
             warr = ""
@@ -453,14 +452,14 @@ class DaeExporter:
                 warr += " 0"
 
             self.writel(S_MORPH, 5, marr)
-            self.writel(S_MORPH, 4, "</IDREF_array>")
+            self.writel(S_MORPH, 4, "</Name_array>")
             self.writel(S_MORPH, 4, "<technique_common>")
             self.writel(
                 S_MORPH, 5, "<accessor source=\"#{}-morph-targets-array\" "
                 "count=\"{}\" stride=\"1\">".format(
                     mid, len(morph_targets) - 1))
             self.writel(
-                S_MORPH, 6, "<param name=\"MORPH_TARGET\" type=\"IDREF\"/>")
+                S_MORPH, 6, "<param type=\"name\"/>")
             self.writel(S_MORPH, 5, "</accessor>")
             self.writel(S_MORPH, 4, "</technique_common>")
             self.writel(S_MORPH, 3, "</source>")
@@ -659,7 +658,7 @@ class DaeExporter:
                 tup = v.get_tup()
                 idx = 0
                 # Do not optmize if using shapekeys
-                if (skeyindex == -1 and tup in vertex_map):
+                if tup in vertex_map:
                     idx = vertex_map[tup]
                 else:
                     idx = len(vertices)
@@ -672,8 +671,12 @@ class DaeExporter:
                 indices.append(vi)
 
         meshid = self.new_id("mesh")
+
+        if custom_name is not None:
+            meshid = custom_name
+
         self.writel(
-            S_GEOM, 1, "<geometry id=\"{}\" name=\"{}\">".format(
+            S_GEOM, 1, "<geometry id=\"{}\" name=\"{}Mesh\">".format(
                 meshid, name_to_use))
 
         self.writel(S_GEOM, 2, "<mesh>")
